@@ -9,4 +9,5 @@
 # .tfvars files
 *.tfvars
 
-
+### Python ###
+venv/
