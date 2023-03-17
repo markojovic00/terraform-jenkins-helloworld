@@ -1,0 +1,53 @@
+pipeline {
+   agent any
+   
+   environment {
+      DOCKER_HUB_REPO = "markojovic/python-hello-world"
+      CONTAINER_NAME = "python-hello-world"
+      DOCKERHUB_CREDENTIALS = credentials('dockerHub')
+   }
+    stages {
+        stage('Checkout SCM') {
+            steps {
+               git branch: 'main', url: 'https://github.com/markojovic00/terraform-jenkins-helloworld.git'
+            }
+        }
+       stage('Build') {
+           steps {
+               echo 'Building Image'
+               sh 'docker image build -t $DOCKER_HUB_REPO:latest .'
+           }
+       }
+      stage('Start Container') {
+          steps {
+               echo 'Running Container'
+               sh 'docker stop $CONTAINER_NAME || true'
+               sh 'docker rm $CONTAINER_NAME || true'
+               sh 'docker run -it -d -p 8090:8090 --name $CONTAINER_NAME markojovic/python-hello-world:latest'
+               sleep 20
+          }
+      }
+       stage('Test api reachability') {
+          steps {
+                echo 'Testing api endpoint'
+                sh """
+                res=\$(curl --write-out '%{http_code}' --silent --output /dev/null http://localhost:8090/test)
+                if [ \$res != '200' ]; then
+                 exit 1
+                else
+                echo "Test SUCCESSFUL"
+                fi
+                """
+          }
+      }
+        stage('Deploy to Dockerhub') {
+            steps {
+                echo 'Pushing Image to Docker Hub'
+                sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin' 
+                sh 'docker push $DOCKER_HUB_REPO:latest'
+                sh 'docker logout'
+            }
+        }
+        
+    }
+}
