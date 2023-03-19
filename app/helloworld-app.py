@@ -9,7 +9,7 @@ def hello():
    return "Hello world!!!"
  
 @app.route("/test")
-def test():
+de test():
    return '', 200
   
  
